@@ -1,22 +1,18 @@
 {
     "usuarios": [
-        { "id": "1", "nombre_completo": "Juan Pérez", "documento": "10203040", "correo": "juan.perez@email.com" },
-        { "id": "2", "nombre_completo": "María García", "documento": "20304050", "correo": "maria.garcia@email.com" },
-        { "id": "3", "nombre_completo": "Carlos Rodríguez", "documento": "30405060", "correo": "carlos.rod@email.com" },
-        { "id": "4", "nombre_completo": "Ana Martínez", "documento": "40506070", "correo": "ana.mtz@email.com" },
-        { "id": "5", "nombre_completo": "Luis Hernández", "documento": "50607080", "correo": "luis.hdez@email.com" },
-        { "id": "6", "nombre_completo": "Elena Gómez", "documento": "60708090", "correo": "elena.gomez@email.com" },
-        { "id": "7", "nombre_completo": "Diego López", "documento": "70809001", "correo": "diego.lopez@email.com" },
-        { "id": "8", "nombre_completo": "Lucía Díaz", "documento": "80900112", "correo": "lucia.diaz@email.com" },
-        { "id": "9", "nombre_completo": "Fernando Ruiz", "documento": "90011223", "correo": "fernando.ruiz@email.com" },
-        { "id": "10", "nombre_completo": "Sofía Torres", "documento": "11223344", "correo": "sofia.torres@email.com" }
+        { "userId": "1", "nombre_completo": "Juan Pérez", "documento": "10203040"},
+        { "userId": "2", "nombre_completo": "María García", "documento": "20304050"},
+        { "userId": "3", "nombre_completo": "Carlos Rodríguez", "documento": "30405060"},
+        { "userId": "4", "nombre_completo": "Ana Martínez", "documento": "40506070"},
+        { "userId": "5", "nombre_completo": "Luis Hernández", "documento": "50607080"},
+        { "userId": "6", "nombre_completo": "Elena Gómez", "documento": "60708090"},
+        { "userId": "7", "nombre_completo": "Diego López", "documento": "70809001"},
+        { "userId": "8", "nombre_completo": "Lucía Díaz", "documento": "80900112"},
+        { "userId": "9", "nombre_completo": "Fernando Ruiz", "documento": "90011223"},
+        { "userId": "10", "nombre_completo": "Sofía Torres", "documento": "11223344"}
     ],
-    "posts": [
-        { "id": "1", "title": "Primer Post", "userId": "1" },
-        { "id": "2", "title": "Hola Mundo", "userId": "2" }
-    ],
-    "profile": {
-        "admin": "typicode",
-        "version": "1.0.0"
-    }
+
+    "tasks": [
+        {"tareaId": "", "description": ""}
+    ]
 }
