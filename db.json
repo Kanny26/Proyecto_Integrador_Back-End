@@ -1,8 +1,26 @@
 {
   "usuarios": [
-    { "id": "1", "nombre_completo": "ADMIN", "documento": "10203040", "rol": "admin", "activo": true },
-    { "id": "2", "nombre_completo": "María García", "documento": "20304050", "rol": "user", "activo": true },
-    { "id": "3", "nombre_completo": "Carlos Rodríguez", "documento": "30405060", "rol": "user", "activo": true }
+    {
+      "id": "1",
+      "nombre_completo": "SUPER ADMIN",
+      "documento": "10203040",
+      "rol": "admin",
+      "activo": true
+    },
+    {
+      "id": "2",
+      "nombre_completo": "María García",
+      "documento": "20304050",
+      "rol": "user",
+      "activo": true
+    },
+    {
+      "id": "3",
+      "nombre_completo": "Carlos Rodríguez",
+      "documento": "30405060",
+      "rol": "user",
+      "activo": true
+    }
   ],
   "tareas": [
     {
@@ -11,7 +29,20 @@
       "description": "Descripción de prueba",
       "status": "pendiente",
       "fecha": "2026-03-14T10:00:00",
-      "usuariosAsignados": ["2", "3"]
+      "usuariosAsignados": [
+        "2",
+        "3"
+      ]
+    },
+    {
+      "id": "1773929368072",
+      "fecha": "2026-03-19T14:09:28.072Z",
+      "title": "Nueva tarea de prueba",
+      "description": "Verificacion",
+      "status": "pendiente",
+      "usuariosAsignados": [
+        "1"
+      ]
     }
   ]
 }
