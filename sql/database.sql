@@ -17,6 +17,7 @@ USE inventario_tareas;
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
+    documento VARCHAR(20) NOT NULL UNIQUE,
     rol ENUM('admin', 'user') NOT NULL,
     estado ENUM('activo', 'inactivo') NOT NULL
 );
@@ -32,10 +33,10 @@ CREATE TABLE tasks (
 
 -- 8. Crear la tabla de asignación de tareas a usuarios (relación muchos a muchos)
 CREATE TABLE task_assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
     task_id INT,
     user_id INT,
-    PRIMARY KEY (task_id, user_id),
-
+    
     -- Definición de la Llave Foránea con restricción de eliminación
     CONSTRAINT fk_task_id 
         FOREIGN KEY (task_id) 

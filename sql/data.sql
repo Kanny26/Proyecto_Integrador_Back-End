@@ -4,49 +4,28 @@
 USE inventario_tareas;
 
 -- ==========================================
--- 1. POBLAR USUARIOS (3 Registros)
+-- 1. USUARIOS
 -- ==========================================
-INSERT INTO users (id, name, rol, estado) VALUES
-(1, 'SUPER ADMIN',        'admin', 'activo'),
-(2, 'María García',       'user',  'activo'),
-(3, 'Carlos Rodríguez',   'user',  'activo');
-
+INSERT INTO users (id, name, documento, rol, estado) VALUES
+(1, 'SUPER ADMIN',        '10203040', 'admin', 'activo'),
+(2, 'María García',       '20304050', 'user',  'activo'),
+(3, 'Carlos Rodríguez',   '30405060', 'user',  'activo'),
+(4,  'Andrés Martínez',    '40506070', 'user',  'activo'),
+(5,  'Laura Sánchez',      '50607080', 'user',  'activo'),
+(6,  'Felipe Torres',      '60708090', 'user',  'inactivo'),
+(7,  'Valentina Ríos',     '70809010', 'user',  'activo'),
+(8,  'Santiago Herrera',   '80901020', 'user',  'activo'),
+(9,  'Gabriela Moreno',    '90102030', 'user',  'inactivo'),
+(10, 'Camilo Vargas',      '10203041', 'user',  'activo'),
+(11, 'Natalia Ospina',     '11223344', 'admin', 'activo');
 -- ==========================================
--- 2. POBLAR TAREAS (4 Registros)
+-- 2. TAREAS
 -- ==========================================
 INSERT INTO tasks (id, created_ud, title, description, status) VALUES
 (1, '2026-03-19 14:09:28', 'Nueva tarea de prueba',  'Verificacion',                    'pendiente'),
 (2, '2026-03-21 00:04:07', 'Tarea de prueba',        'asignacion multiples usuarios',   'pendiente'),
 (3, '2026-03-21 01:18:11', 'Visualizar listado',     'Listar proceso de usuarios',      'completada'),
-(4, '2026-03-21 01:18:38', 'Verificar backend',      'verificacion del backend',        'completada');
-
--- ==========================================
--- 3. POBLAR ASIGNACIONES DE TAREAS (5 Registros)
--- ==========================================
-INSERT INTO task_assignments (task_id, user_id) VALUES
-(1, 1),  -- "Nueva tarea de prueba"  -> SUPER ADMIN
-(2, 2),  -- "Tarea de prueba"        -> María García
-(2, 3),  -- "Tarea de prueba"        -> Carlos Rodríguez
-(3, 2),  -- "Visualizar listado"     -> María García
-(4, 3);  -- "Verificar backend"      -> Carlos Rodríguez
-
--- ==========================================
--- 4. NUEVOS USUARIOS (8 Registros | IDs 4-11)
--- ==========================================
-INSERT INTO users (id, name, rol, estado) VALUES
-(4,  'Andrés Martínez',    'user',  'activo'),
-(5,  'Laura Sánchez',      'user',  'activo'),
-(6,  'Felipe Torres',      'user',  'inactivo'),
-(7,  'Valentina Ríos',     'user',  'activo'),
-(8,  'Santiago Herrera',   'user',  'activo'),
-(9,  'Gabriela Moreno',    'user',  'inactivo'),
-(10, 'Camilo Vargas',      'user',  'activo'),
-(11, 'Natalia Ospina',     'admin', 'activo');
-
--- ==========================================
--- 5. NUEVAS TAREAS (20 Registros | IDs 5-24)
--- ==========================================
-INSERT INTO tasks (id, created_ud, title, description, status) VALUES
+(4, '2026-03-21 01:18:38', 'Verificar backend',      'verificacion del backend',        'completada'),
 (5,  '2026-03-22 08:00:00', 'Diseñar base de datos',          'Crear el modelo entidad-relación del sistema',           'completada'),
 (6,  '2026-03-22 09:15:00', 'Configurar servidor',            'Instalar y configurar el servidor Node.js en producción', 'completada'),
 (7,  '2026-03-22 10:30:00', 'Implementar autenticación',      'Agregar JWT y control de sesiones',                      'en proceso'),
@@ -67,11 +46,15 @@ INSERT INTO tasks (id, created_ud, title, description, status) VALUES
 (22, '2026-03-26 09:00:00', 'Mantenimiento preventivo BD',    'Hacer backup y revisar integridad de la base de datos',  'pendiente'),
 (23, '2026-03-27 08:00:00', 'Actualizar dependencias npm',    'Revisar y actualizar paquetes desactualizados',          'en proceso'),
 (24, '2026-03-28 08:00:00', 'Presentación final del proyecto','Preparar la demo y la documentación de entrega',         'pendiente');
-
 -- ==========================================
--- 6. NUEVAS ASIGNACIONES (tareas 5-24)
+-- 3. ASIGNACIONES DE TAREAS
 -- ==========================================
 INSERT INTO task_assignments (task_id, user_id) VALUES
+(1, 1),  -- "Nueva tarea de prueba"  -> SUPER ADMIN
+(2, 2),  -- "Tarea de prueba"        -> María García
+(2, 3),  -- "Tarea de prueba"        -> Carlos Rodríguez
+(3, 2),  -- "Visualizar listado"     -> María García
+(4, 3),  -- "Verificar backend"      -> Carlos Rodríguez
 (5,  4),   -- Diseñar base de datos          -> Andrés Martínez
 (5,  11),  -- Diseñar base de datos          -> Natalia Ospina
 (6,  5),   -- Configurar servidor            -> Laura Sánchez

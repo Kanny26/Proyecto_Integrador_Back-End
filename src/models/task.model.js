@@ -1,129 +1,256 @@
-import { readFile, writeFile } from 'fs/promises'
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
+import pool from '../config/db.js'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const DB_PATH = join(__dirname, '../../db.json')
+// ─── SQL Helpers ────────────────────────────────────────────────────────────
 
-const readDB = async () => {
-  const data = await readFile(DB_PATH, 'utf-8')
-  return JSON.parse(data)
+// Obtiene los IDs de usuarios asignados para una o varias tareas
+const getUsersForTasks = async (taskIds) => {
+  if (taskIds.length === 0) return {}
+  
+  const [rows] = await pool.query(
+    'SELECT task_id, user_id FROM task_assignments WHERE task_id IN (?)',
+    [taskIds]
+  )
+  
+  // Agrupar por task_id: { "1": ["102", "105"], "2": ["102"] }
+  return rows.reduce((acc, row) => {
+    if (!acc[row.task_id]) acc[row.task_id] = []
+    acc[row.task_id].push(String(row.user_id))
+    return acc
+  }, {})
 }
 
-const writeDB = async (data) => {
-  await writeFile(DB_PATH, JSON.stringify(data, null, 2), 'utf-8')
-}
-
-export const getAll = async () => {
-  const db = await readDB()
-  return db.tareas
-}
-
-export const getById = async (id) => {
-  const db = await readDB()
-  return db.tareas.find((t) => t.id === id) ?? null
-}
-
-export const create = async (taskData) => {
-  const db = await readDB()
-  const newTask = {
-    id: Date.now().toString(),
-    fecha: new Date().toISOString(),
-    ...taskData,
-  }
-  db.tareas.push(newTask)
-  await writeDB(db)
-  return newTask
-}
-
-export const update = async (id, taskData) => {
-  const db = await readDB()
-  const index = db.tareas.findIndex((t) => t.id === id)
-  if (index === -1) return null
-  db.tareas[index] = { ...db.tareas[index], ...taskData }
-  await writeDB(db)
-  return db.tareas[index]
-}
-
-export const remove = async (id) => {
-  const db = await readDB()
-  const index = db.tareas.findIndex((t) => t.id === id)
-  if (index === -1) return null
-  const [removed] = db.tareas.splice(index, 1)
-  await writeDB(db)
-  return removed
-}
-
-export const updateStatus = async (id, status) => {
-  const db = await readDB()
-  const index = db.tareas.findIndex((t) => t.id === id)
-  if (index === -1) return null
-  db.tareas[index].status = status
-  await writeDB(db)
-  return db.tareas[index]
-}
-
-export const assignUsers = async (taskId, userIds) => {
-  const db = await readDB()
-  const index = db.tareas.findIndex((t) => t.id === taskId)
-  if (index === -1) return null
-  const current = db.tareas[index].usuariosAsignados ?? []
-  const merged = [...new Set([...current, ...userIds])]
-  db.tareas[index].usuariosAsignados = merged
-  await writeDB(db)
-  return db.tareas[index]
-}
-
-export const getAssignedUsers = async (taskId) => {
-  const db = await readDB()
-  const task = db.tareas.find((t) => t.id === taskId)
+const normalizeTask = (task, assignments = []) => {
   if (!task) return null
-  const userIds = task.usuariosAsignados ?? []
-  return db.usuarios.filter((u) => userIds.includes(u.id))
+  return {
+    ...task,
+    fecha: task.created_ud, // El frontend espera 'fecha'
+    usuariosAsignados: assignments
+  }
 }
 
+// ─── Obtener todas las tareas ────────────────────────────────────────────────
+export const getAll = async () => {
+  const [tasks] = await pool.query('SELECT * FROM tasks')
+  if (tasks.length === 0) return []
+
+  const assignmentsMap = await getUsersForTasks(tasks.map(t => t.id))
+  return tasks.map(t => normalizeTask(t, assignmentsMap[t.id] || []))
+}
+
+// ─── Obtener una tarea por ID ────────────────────────────────────────────────
+export const getById = async (id) => {
+  const [rows] = await pool.query('SELECT * FROM tasks WHERE id = ?', [id])
+  if (rows.length === 0) return null
+
+  const assignmentsMap = await getUsersForTasks([id])
+  return normalizeTask(rows[0], assignmentsMap[id] || [])
+}
+
+// ─── Crear una nueva tarea ───────────────────────────────────────────────────
+export const create = async (taskData) => {
+  const {
+    title,
+    description = '',
+    status = 'pendiente',
+    usuariosAsignados = [],
+  } = taskData
+
+  const [result] = await pool.query(
+    'INSERT INTO tasks (title, description, status) VALUES (?, ?, ?)',
+    [title, description, status]
+  )
+
+  const taskId = result.insertId
+
+  if (usuariosAsignados.length > 0) {
+    const assignValues = usuariosAsignados.map((userId) => [taskId, userId])
+    await pool.query(
+      'INSERT INTO task_assignments (task_id, user_id) VALUES ?',
+      [assignValues]
+    )
+  }
+
+  const [created] = await pool.query('SELECT * FROM tasks WHERE id = ?', [taskId])
+  return normalizeTask(created[0], usuariosAsignados.map(String))
+}
+
+// ─── Actualizar una tarea ────────────────────────────────────────────────────
+export const update = async (id, taskData) => {
+  const { title, description, status, usuariosAsignados } = taskData
+
+  const fields = []
+  const values = []
+
+  if (title       !== undefined) { fields.push('title = ?');       values.push(title)       }
+  if (description !== undefined) { fields.push('description = ?'); values.push(description) }
+  if (status      !== undefined) { fields.push('status = ?');      values.push(status)      }
+
+  // Actualizar campos básicos
+  if (fields.length > 0) {
+    values.push(id)
+    await pool.query(
+      `UPDATE tasks SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    )
+  }
+
+  // Actualizar asignaciones si se envían en el body
+  if (usuariosAsignados !== undefined) {
+    // Borramos asignaciones previas
+    await pool.query('DELETE FROM task_assignments WHERE task_id = ?', [id])
+
+    // Insertamos las nuevas
+    if (Array.isArray(usuariosAsignados) && usuariosAsignados.length > 0) {
+      const assignValues = usuariosAsignados.map((userId) => [id, userId])
+      await pool.query(
+        'INSERT INTO task_assignments (task_id, user_id) VALUES ?',
+        [assignValues]
+      )
+    }
+  }
+
+  return getById(id)
+}
+
+// ─── Eliminar una tarea ──────────────────────────────────────────────────────
+export const remove = async (id) => {
+  const task = await getById(id)
+  if (!task) return null
+
+  // Primero borramos las asignaciones
+  await pool.query('DELETE FROM task_assignments WHERE task_id = ?', [id])
+  await pool.query('DELETE FROM tasks WHERE id = ?', [id])
+  
+  return task
+}
+
+// ─── Cambiar solo el estado de una tarea ────────────────────────────────────
+export const updateStatus = async (id, status) => {
+  const [result] = await pool.query(
+    'UPDATE tasks SET status = ? WHERE id = ?',
+    [status, id]
+  )
+  if (result.affectedRows === 0) return null
+
+  return getById(id)
+}
+
+// ─── Asignar usuarios a una tarea ───────────────────────────────────────────
+export const assignUsers = async (taskId, userIds) => {
+  const [task] = await pool.query('SELECT id FROM tasks WHERE id = ?', [taskId])
+  if (task.length === 0) return null
+
+  const values = userIds.map((uid) => [taskId, uid])
+  await pool.query(
+    'INSERT IGNORE INTO task_assignments (task_id, user_id) VALUES ?',
+    [values]
+  )
+
+  return getById(taskId)
+}
+
+// ─── Obtener usuarios asignados a una tarea (objetos de usuario completos) ──
+export const getAssignedUsers = async (taskId) => {
+  const [tasks] = await pool.query('SELECT id FROM tasks WHERE id = ?', [taskId])
+  if (tasks.length === 0) return null
+
+  const [users] = await pool.query(
+    `SELECT 
+      u.id, 
+      u.name AS nombre_completo, 
+      u.documento, 
+      u.rol, 
+      (u.estado = 'activo') AS activo
+     FROM users u
+     INNER JOIN task_assignments ta ON ta.user_id = u.id
+     WHERE ta.task_id = ?`,
+    [taskId]
+  )
+  
+  return users.map(u => ({ ...u, activo: Boolean(u.activo) }))
+}
+
+// ─── Quitar un usuario de una tarea ─────────────────────────────────────────
 export const removeAssignedUser = async (taskId, userId) => {
-  const db = await readDB()
-  const index = db.tareas.findIndex((t) => t.id === taskId)
-  if (index === -1) return null
-  const before = db.tareas[index].usuariosAsignados ?? []
-  if (!before.includes(userId)) return null
-  db.tareas[index].usuariosAsignados = before.filter((id) => id !== userId)
-  await writeDB(db)
-  return db.tareas[index]
+  const [result] = await pool.query(
+    'DELETE FROM task_assignments WHERE task_id = ? AND user_id = ?',
+    [taskId, userId]
+  )
+  if (result.affectedRows === 0) return null
+
+  return getById(taskId)
 }
 
+// ─── Filtrar tareas ──────────────────────────────────────────────────────────
 export const filterTasks = async ({ status, priority, userId, fechaInicio, fechaFin }) => {
-  const db = await readDB()
-  let tareas = db.tareas
+  let query = 'SELECT DISTINCT t.* FROM tasks t'
+  const params = []
 
-  if (status) tareas = tareas.filter((t) => t.status === status)
-  if (priority) tareas = tareas.filter((t) => t.priority === priority)
-  if (userId) tareas = tareas.filter((t) => (t.usuariosAsignados ?? []).includes(userId))
-  if (fechaInicio) tareas = tareas.filter((t) => new Date(t.fecha) >= new Date(fechaInicio))
-  if (fechaFin) tareas = tareas.filter((t) => new Date(t.fecha) <= new Date(fechaFin))
+  if (userId) {
+    query += ' INNER JOIN task_assignments ta ON ta.task_id = t.id'
+  }
 
-  return tareas
+  const conditions = []
+  if (status)      { conditions.push('t.status = ?');              params.push(status)     }
+  if (userId)      { conditions.push('ta.user_id = ?');            params.push(userId)     }
+  if (fechaInicio) { conditions.push('t.created_ud >= ?');         params.push(fechaInicio)}
+  if (fechaFin)    { conditions.push('t.created_ud <= ?');         params.push(fechaFin)   }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ')
+  }
+
+  const [tasks] = await pool.query(query, params)
+  if (tasks.length === 0) return []
+
+  const assignmentsMap = await getUsersForTasks(tasks.map(t => t.id))
+  return tasks.map(t => normalizeTask(t, assignmentsMap[t.id] || []))
 }
 
+// ─── Obtener tareas de un usuario ────────────────────────────────────────────
 export const getTasksByUser = async (userId) => {
-  const db = await readDB()
-  return db.tareas.filter((t) => (t.usuariosAsignados ?? []).includes(userId))
+  const [tasks] = await pool.query(
+    `SELECT t.* FROM tasks t
+     INNER JOIN task_assignments ta ON ta.task_id = t.id
+     WHERE ta.user_id = ?`,
+    [userId]
+  )
+  
+  if (tasks.length === 0) return []
+
+  const assignmentsMap = await getUsersForTasks(tasks.map(t => t.id))
+  return tasks.map(t => normalizeTask(t, assignmentsMap[t.id] || []))
 }
 
+// ─── Estadísticas del dashboard ─────────────────────────────────────────────
 export const getDashboardStats = async () => {
-  const db = await readDB()
-  const tareas = db.tareas
-  const usuarios = db.usuarios
+  const [[{ totalUsuarios }]] = await pool.query(
+    'SELECT COUNT(*) AS totalUsuarios FROM users'
+  )
+  const [[{ usuariosActivos }]] = await pool.query(
+    "SELECT COUNT(*) AS usuariosActivos FROM users WHERE estado = 'activo'"
+  )
+  const [[{ totalTareas }]] = await pool.query(
+    'SELECT COUNT(*) AS totalTareas FROM tasks'
+  )
+  const [[{ pendiente }]] = await pool.query(
+    "SELECT COUNT(*) AS pendiente FROM tasks WHERE status = 'pendiente'"
+  )
+  const [[{ en_proceso }]] = await pool.query(
+    "SELECT COUNT(*) AS en_proceso FROM tasks WHERE status = 'en proceso'"
+  )
+  const [[{ completada }]] = await pool.query(
+    "SELECT COUNT(*) AS completada FROM tasks WHERE status = 'completada'"
+  )
 
   return {
-    totalUsuarios: usuarios.length,
-    usuariosActivos: usuarios.filter((u) => u.activo).length,
-    totalTareas: tareas.length,
+    totalUsuarios,
+    usuariosActivos,
+    totalTareas,
     tareasPorEstado: {
-      pendiente: tareas.filter((t) => t.status === 'pendiente').length,
-      'en proceso': tareas.filter((t) => t.status === 'en proceso').length,
-      completada: tareas.filter((t) => t.status === 'completada').length,
+      pendiente,
+      'en proceso': en_proceso,
+      completada,
     },
   }
 }

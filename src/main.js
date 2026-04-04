@@ -1,5 +1,7 @@
+import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
+import './config/db.js' // Inicializa y prueba la conexión MySQL al arrancar
 import userRouter from './routes/users.routes.js'
 import taskRouter from './routes/tasks.routes.js'
 import dashboardRouter from './routes/dashboard.routes.js'
