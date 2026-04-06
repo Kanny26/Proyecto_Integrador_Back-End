@@ -2,10 +2,10 @@
 CREATE DATABASE IF NOT EXISTS inventario_tareas;
 
 -- 2. Crear el usuario restringido a localhost
-CREATE USER 'app_user'@'localhost' IDENTIFIED BY '#ProyectoIntegrador2026';
+CREATE USER 'app_user_proyecto'@'localhost' IDENTIFIED BY '#ProyectoIntegrador2026';
 
 -- 3. Asignar todos los privilegios de ESA base de datos a ESTE usuario
-GRANT ALL PRIVILEGES ON inventario_tareas.* TO 'app_user'@'localhost';
+GRANT ALL PRIVILEGES ON inventario_tareas.* TO 'app_user_proyecto'@'localhost';
 
 -- 4. Aplicar los cambios de privilegios inmediatamente
 FLUSH PRIVILEGES;

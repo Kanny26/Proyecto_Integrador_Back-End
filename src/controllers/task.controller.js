@@ -105,8 +105,8 @@ export const removeTaskUser = async (req, res) => {
 
 export const filterTasksHandler = async (req, res) => {
   try {
-    const { status, priority, userId, fechaInicio, fechaFin } = req.query
-    const tasks = await filterTasks({ status, priority, userId, fechaInicio, fechaFin })
+    const { status, userId, fechaInicio, fechaFin } = req.query
+    const tasks = await filterTasks({ status, userId, fechaInicio, fechaFin })
     res.json(tasks)
   } catch (error) {
     res.status(500).json({ error: 'Error al filtrar las tareas' })
